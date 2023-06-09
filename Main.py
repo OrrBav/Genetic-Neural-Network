@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 # Genetic Algorithm parameters
-population_size = 50
+population_size = 10
 mutation_rate = 0.1
 num_generations = 20
 
@@ -12,7 +12,6 @@ input_size = 16
 hidden_size_1 = 8
 hidden_size_2 = 8
 output_size = 1
-
 
 # Data preparation
 def load_data(filename):
@@ -35,6 +34,7 @@ data, labels = load_data("nn0_test_file.txt")
 # Split the data into training and testing sets
 x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
 
+
 # Neural Network Definition
 def create_neural_network():
     model = NeuralNetwork()
@@ -45,11 +45,24 @@ def create_neural_network():
     model.add_layer(Layer(hidden_size_2, output_size, 1))
     return model
 
+
+def compute_accuracy_score(y_train, predictions):
+    num_samples = len(y_train)
+    correct_predictions = 0
+
+    for true_label, predicted_label in zip(y_train, predictions):
+        if true_label == predicted_label:
+            correct_predictions += 1
+
+    accuracy = correct_predictions / num_samples
+    return accuracy
+
 # Fitness Function
 def evaluate_fitness(network, x_train, y_train):
     predictions = network.predict(x_train)
     # todo: implement our own accuracy_score
-    return accuracy_score(y_train, predictions)
+    # return accuracy_score(y_train, predictions)
+    return compute_accuracy_score(y_train, predictions)
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -125,7 +138,8 @@ class NeuralNetwork:
         outputs = inputs
         for layer in self.layers:
             outputs = layer.forward(outputs)
-        return outputs.flatten()
+        binary_predictions = (outputs > 0.5).astype(int)
+        return binary_predictions.flatten()
 
     def crossover(self, other_network):
         new_network = create_neural_network()
@@ -143,9 +157,9 @@ class NeuralNetwork:
 
 # Main
 genetic_algorithm = GeneticAlgorithm(population_size, mutation_rate)
-best_network = genetic_algorithm.evolve(x_train_encoded, y_train, num_generations)
+best_network = genetic_algorithm.evolve(x_train, y_train, num_generations)
 
 # Testing
-predictions = best_network.predict(x_test_encoded)
+predictions = best_network.predict(x_test)
 accuracy = accuracy_score(y_test, predictions)
 print(f"Test Accuracy: {accuracy}")
