@@ -9,13 +9,14 @@ num_generations = 20
 
 # Neural Network parameters
 input_size = 16
-hidden_size = 8
+hidden_size_1 = 8
+hidden_size_2 = 8
 output_size = 1
 
 # Data preparation
 data = np.array([
-    [1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1],
-    [0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0]
+    [1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0],
+    [0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0]
 ])  # Example dataset
 labels = np.array([1, 0])  # Example labels
 
@@ -29,20 +30,28 @@ x_test_encoded = x_test.reshape((-1, input_size))
 # Neural Network Definition
 def create_neural_network():
     model = NeuralNetwork()
-    model.add_layer(Layer(input_size, hidden_size))
-    model.add_layer(Layer(hidden_size, output_size))
+    # TODO: add more hidden layers
+    model.add_layer(Layer(input_size, hidden_size_1))
+    model.add_layer(Layer(hidden_size_1, hidden_size_2))
+    # activation layer
+    model.add_layer(Layer(hidden_size_2, output_size, 1))
     return model
 
 # Fitness Function
 def evaluate_fitness(network, x_train, y_train):
     predictions = network.predict(x_train)
+    # todo: implement our own accuracy_score
     return accuracy_score(y_train, predictions)
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 # Genetic Algorithm
 class GeneticAlgorithm:
     def __init__(self, population_size, mutation_rate):
         self.population_size = population_size
         self.mutation_rate = mutation_rate
+        self.nn_list = None
 
     def evolve(self, x_train, y_train, num_generations):
         population = []
@@ -85,11 +94,17 @@ class GeneticAlgorithm:
 
 # Neural Network Implementation
 class Layer:
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, activation=0):
+        # todo: change to a different distribution?
         self.weights = np.random.randn(input_size, output_size)
+        self.activation = activation
 
     def forward(self, inputs):
-        return np.dot(inputs, self.weights)
+        output = np.dot(inputs, self.weights)
+        if self.activation:
+            output = sigmoid(output)
+        return output
+
 
 class NeuralNetwork:
     def __init__(self):
