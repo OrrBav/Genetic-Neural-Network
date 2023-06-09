@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 # Genetic Algorithm parameters
-population_size = 10
+population_size = 30
 mutation_rate = 0.1
 num_generations = 20
 
@@ -89,6 +89,7 @@ class GeneticAlgorithm:
                 fitness = evaluate_fitness(network, x_train, y_train)
                 fitness_scores.append(fitness)
 
+            print(f"Generation {generation+1} best score is: {max(fitness_scores)}")
             # Selection
             sorted_indices = np.argsort(fitness_scores)[::-1]
             selected_population = [population[i] for i in sorted_indices[:self.population_size // 2]]
@@ -107,6 +108,7 @@ class GeneticAlgorithm:
 
             # Combine selected and offspring populations
             population = selected_population + offspring_population
+
 
         # Select the best individual from the final population
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
@@ -151,6 +153,13 @@ class NeuralNetwork:
         return new_network
 
     def mutate(self, mutation_rate):
+        """
+        the mutation process randomly selects a subset of weights in each layer based on the mutation rate.
+        For the selected weights, a random value is added to introduce variation. This helps in exploring different
+        regions of the solution space during the genetic algorithm optimization process.
+        :param mutation_rate:
+        :return:
+        """
         for layer in self.layers:
             mask = np.random.rand(*layer.weights.shape) < mutation_rate
             layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
@@ -161,5 +170,5 @@ best_network = genetic_algorithm.evolve(x_train, y_train, num_generations)
 
 # Testing
 predictions = best_network.predict(x_test)
-accuracy = accuracy_score(y_test, predictions)
+accuracy = compute_accuracy_score(y_test, predictions)
 print(f"Test Accuracy: {accuracy}")
