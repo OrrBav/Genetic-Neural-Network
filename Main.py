@@ -13,19 +13,27 @@ hidden_size_1 = 8
 hidden_size_2 = 8
 output_size = 1
 
-# Data preparation
-data = np.array([
-    [1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0],
-    [0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0]
-])  # Example dataset
-labels = np.array([1, 0])  # Example labels
 
+# Data preparation
+def load_data(filename):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+    # 2d array where each row is a list
+    data = []
+    labels = []
+    for line in lines:
+        binary_str, label = line.strip().split()
+        data.append([int(bit) for bit in binary_str])  # Convert string to list of ints
+        labels.append(int(label))  # Convert label to int
+
+    return np.array(data), np.array(labels)
+
+
+# get the data and labels from chosen txt file
+data, labels = load_data("nn0_test_file.txt")
 # Split the data into training and testing sets
 x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
-
-# Encoding
-x_train_encoded = x_train.reshape((-1, input_size))
-x_test_encoded = x_test.reshape((-1, input_size))
 
 # Neural Network Definition
 def create_neural_network():
