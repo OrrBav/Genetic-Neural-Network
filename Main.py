@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score
 population_size = 50
 mutation_rate = 0.1
 num_generations = 20
-elite_size = 0.2
+elite_size = 0.5
 
 # Neural Network parameters
 input_size = 16
@@ -94,10 +94,12 @@ class GeneticAlgorithm:
             # Selection
             sorted_indices = np.argsort(fitness_scores)[::-1]
             selected_population = [population[i] for i in sorted_indices[:int(self.population_size * elite_size)]]
+            remaining_population = list(set(population) - set(selected_population))
+
             # Crossover
             offspring_population = []
             for _ in range(self.population_size - len(selected_population)):
-                parent1 = np.random.choice(selected_population)
+                parent1 = np.random.choice(remaining_population)
                 parent2 = np.random.choice(selected_population)
                 offspring = parent1.crossover(parent2)
                 offspring_population.append(offspring)
@@ -147,9 +149,9 @@ class NeuralNetwork:
         new_network = create_neural_network()
         for i in range(len(self.layers)):
             if np.random.rand() > 0.5:
-                new_network.layers[i].weights = self.layers[i].weights
+                new_network.layers[i].weights = np.copy(self.layers[i].weights)
             else:
-                new_network.layers[i].weights = other_network.layers[i].weights
+                new_network.layers[i].weights = np.copy(other_network.layers[i].weights)
         return new_network
 
     def mutate(self, mutation_rate):
@@ -163,6 +165,15 @@ class NeuralNetwork:
         for layer in self.layers:
             mask = np.random.rand(*layer.weights.shape) < mutation_rate
             layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
+
+
+# network = create_neural_network()
+# fitness_scores = []
+# for _ in range(20):
+#     fitness = evaluate_fitness(network, x_train, y_train)
+#     fitness_scores.append(fitness)
+#
+# print(fitness_scores)
 
 # Main
 genetic_algorithm = GeneticAlgorithm(population_size, mutation_rate)
