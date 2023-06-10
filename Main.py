@@ -3,9 +3,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 # Genetic Algorithm parameters
-population_size = 30
+population_size = 50
 mutation_rate = 0.1
 num_generations = 20
+elite_size = 0.2
 
 # Neural Network parameters
 input_size = 16
@@ -30,7 +31,7 @@ def load_data(filename):
 
 
 # get the data and labels from chosen txt file
-data, labels = load_data("nn0_test_file.txt")
+data, labels = load_data("nn0.txt")
 # Split the data into training and testing sets
 x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
 
@@ -92,8 +93,7 @@ class GeneticAlgorithm:
             print(f"Generation {generation+1} best score is: {max(fitness_scores)}")
             # Selection
             sorted_indices = np.argsort(fitness_scores)[::-1]
-            selected_population = [population[i] for i in sorted_indices[:self.population_size // 2]]
-
+            selected_population = [population[i] for i in sorted_indices[:int(self.population_size * elite_size)]]
             # Crossover
             offspring_population = []
             for _ in range(self.population_size - len(selected_population)):
