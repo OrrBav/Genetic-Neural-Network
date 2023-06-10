@@ -1,25 +1,27 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
 # Genetic Algorithm parameters
-population_size = 50
-mutation_rate = 0.1
-num_generations = 20
-elite_size = 0.5
+POPULATION_SIZE = 50
+MUTATION_RATE = 0.1
+GENERATIONS = 20
+ELITE_SIZE = 0.5
 
 # Neural Network parameters
-input_size = 16
-hidden_size_1 = 8
-hidden_size_2 = 8
-output_size = 1
+INPUT_SIZE = 16
+HIDDEN_SIZE_1 = 8
+HIDDEN_SIZE_2 = 8
+OUTPUT_SIZE = 1
 
-# Data preparation
+
 def load_data(filename):
+    """
+        Data preparation. Load the binary strings data and their corresponding labels from the input text file.
+        Returns:
+        'data'- numpy 2D array where each row is a binary string from a file line, converted to a list of integers.
+        'labels'- numpy 1D array of the labels corresponding to each binary string, converted to integers.
+        """
     with open(filename, 'r') as file:
         lines = file.readlines()
-
-    # 2d array where each row is a list
     data = []
     labels = []
     for line in lines:
@@ -27,23 +29,45 @@ def load_data(filename):
         data.append([int(bit) for bit in binary_str])  # Convert string to list of ints
         labels.append(int(label))  # Convert label to int
 
+    # data is a 2d array where each row is a list
     return np.array(data), np.array(labels)
 
 
+def split_train_test(data, labels, test_size=0.2):
+    """
+        Split data and labels into a train set and a test set.
+        the test_size is a fraction of the data to be used as test data.
+        Returns x_train (train data), x_test (test data), y_train (train labels), y_test (test labels)
+    """
+    # Calculate the number of test samples
+    num_test_samples = int(len(data) * test_size)
+    # Generate random indices for the test set
+    test_indices = np.random.choice(len(data), size=num_test_samples, replace=False)
+    # Generate train indices as the complement of the test indices
+    train_indices = np.setdiff1d(np.arange(len(data)), test_indices)
+    # Split the data and labels
+    x_train = data[train_indices]
+    x_test = data[test_indices]
+    y_train = labels[train_indices]
+    y_test = labels[test_indices]
+
+    return x_train, x_test, y_train, y_test
+
+
 # get the data and labels from chosen txt file
-data, labels = load_data("nn0.txt")
-# Split the data into training and testing sets
-x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
+data, labels = load_data("nn0_test_file.txt")
+# Split the data into train and test sets
+x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
 
 
 # Neural Network Definition
 def create_neural_network():
     model = NeuralNetwork()
     # TODO: add more hidden layers
-    model.add_layer(Layer(input_size, hidden_size_1))
-    model.add_layer(Layer(hidden_size_1, hidden_size_2))
+    model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
+    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2))
     # activation layer
-    model.add_layer(Layer(hidden_size_2, output_size, 1))
+    model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, 1))
     return model
 
 
@@ -58,6 +82,7 @@ def compute_accuracy_score(y_train, predictions):
     accuracy = correct_predictions / num_samples
     return accuracy
 
+
 # Fitness Function
 def evaluate_fitness(network, x_train, y_train):
     predictions = network.predict(x_train)
@@ -65,24 +90,27 @@ def evaluate_fitness(network, x_train, y_train):
     # return accuracy_score(y_train, predictions)
     return compute_accuracy_score(y_train, predictions)
 
+
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+
 # Genetic Algorithm
 class GeneticAlgorithm:
-    def __init__(self, population_size, mutation_rate):
-        self.population_size = population_size
-        self.mutation_rate = mutation_rate
+
+    def __init__(self):
+        self.population_size = POPULATION_SIZE
+        self.mutation_rate = MUTATION_RATE
         self.nn_list = None
 
-    def evolve(self, x_train, y_train, num_generations):
+    def evolve(self, x_train, y_train):
         population = []
         for _ in range(self.population_size):
             network = create_neural_network()
             population.append(network)
 
-        for generation in range(num_generations):
-            print(f"Generation {generation+1}/{num_generations}")
+        for generation in range(GENERATIONS):
+            print(f"Generation {generation+1}/{GENERATIONS}")
 
             # Evaluation
             fitness_scores = []
@@ -93,7 +121,7 @@ class GeneticAlgorithm:
             print(f"Generation {generation+1} best score is: {max(fitness_scores)}")
             # Selection
             sorted_indices = np.argsort(fitness_scores)[::-1]
-            selected_population = [population[i] for i in sorted_indices[:int(self.population_size * elite_size)]]
+            selected_population = [population[i] for i in sorted_indices[:int(self.population_size * ELITE_SIZE)]]
             remaining_population = list(set(population) - set(selected_population))
 
             # Crossover
@@ -106,7 +134,7 @@ class GeneticAlgorithm:
 
             # Mutation
             for offspring in offspring_population:
-                offspring.mutate(self.mutation_rate)
+                offspring.mutate()
 
             # Combine selected and offspring populations
             population = selected_population + offspring_population
@@ -116,6 +144,7 @@ class GeneticAlgorithm:
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_individual = population[np.argmax(fitness_scores)]
         return best_individual
+
 
 # Neural Network Implementation
 class Layer:
@@ -154,19 +183,18 @@ class NeuralNetwork:
                 new_network.layers[i].weights = np.copy(other_network.layers[i].weights)
         return new_network
 
-    def mutate(self, mutation_rate):
+    def mutate(self):
         """
         the mutation process randomly selects a subset of weights in each layer based on the mutation rate.
-        For the selected weights, a random value is added to introduce variation. This helps in exploring different
-        regions of the solution space during the genetic algorithm optimization process.
-        :param mutation_rate:
-        :return:
+        For the selected weights, a random value is added to introduce variation.
+        This helps in exploring different regions of the solution space during the genetic algorithm optimization process
         """
         for layer in self.layers:
-            mask = np.random.rand(*layer.weights.shape) < mutation_rate
+            mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
             layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
 
 
+# for testing:
 # network = create_neural_network()
 # fitness_scores = []
 # for _ in range(20):
@@ -176,8 +204,8 @@ class NeuralNetwork:
 # print(fitness_scores)
 
 # Main
-genetic_algorithm = GeneticAlgorithm(population_size, mutation_rate)
-best_network = genetic_algorithm.evolve(x_train, y_train, num_generations)
+genetic_algorithm = GeneticAlgorithm()
+best_network = genetic_algorithm.evolve(x_train, y_train)
 
 # Testing
 predictions = best_network.predict(x_test)
