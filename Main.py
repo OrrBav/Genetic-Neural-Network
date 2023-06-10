@@ -8,14 +8,16 @@ filterwarnings("ignore", category=RuntimeWarning)
 # Genetic Algorithm parameters
 POPULATION_SIZE = 150
 MUTATION_RATE = 0.2
-GENERATIONS = 150
+GENERATIONS = 100
 ELITE_SIZE = 0.1
+OFFSPRING_UNTOUCHED = 0.2
+STUCK_THRESHOLD = 30
 LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 64
-HIDDEN_SIZE_2 = 32
+HIDDEN_SIZE_1 = 8
+HIDDEN_SIZE_2 = 8
 OUTPUT_SIZE = 1
 
 
@@ -61,13 +63,17 @@ def split_train_test(data, labels, test_size=0.2):
 
 
 # get the data and labels from chosen txt file
-data, labels = load_data("nn1.txt")
+data, labels = load_data("nn0.txt")
 # Split the data into train and test sets
 x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
 
 
-# Neural Network Definition
 def create_neural_network():
+    """
+       creates and initialize a neural network with three layers: two hidden layers and one output layer.
+       The sizes of the input layer, hidden layers, and output layer are determined by global variables.
+       The output layer includes an activation function.
+       """
     model = NeuralNetwork()
     # TODO: add more hidden layers
     model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
@@ -78,22 +84,30 @@ def create_neural_network():
 
 
 def compute_accuracy_score(y_train, predictions):
+    """
+        Calculates the accuracy score of the predictions made by the network.
+        If a prediction matches its true label, it increments the count of correct predictions.
+        The accuracy score is the correct predictions divided by the total predictions.
+    """
     num_samples = len(y_train)
     correct_predictions = 0
 
+    # If the prediction is correct, increment the count of correct predictions
     for true_label, predicted_label in zip(y_train, predictions):
         if true_label == predicted_label:
             correct_predictions += 1
 
+    # Compute accuracy as the ratio of correct predictions to total number of samples
     accuracy = correct_predictions / num_samples
     return accuracy
 
 
-# Fitness Function
 def evaluate_fitness(network, x_train, y_train):
+    """
+        The fitness function evaluates how well the neural network performs on the training data.
+        It uses the accuracy of the network's predictions as the fitness score.
+    """
     predictions = network.predict(x_train)
-    # todo: implement our own accuracy_score
-    # return accuracy_score(y_train, predictions)
     return compute_accuracy_score(y_train, predictions)
 
 
@@ -101,60 +115,89 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-# Genetic Algorithm
 class GeneticAlgorithm:
+    """
+        This class represents a genetic algorithm for optimizing the structure and parameters of a neural network.
+        The algorithm starts by creating an initial population of random neural networks.
+        Then, over a series of generations, it evaluates the performance (fitness) of each network,
+        selects the best performers, and breeds a new generation of networks through crossover and mutation.
+        At the end of the generations, the algorithm selects the best overall network and returns it.
+    """
 
     def __init__(self):
         self.population_size = POPULATION_SIZE
 
     def evolve(self, x_train, y_train):
+        # Creating an initial population of neural networks
         population = []
         for _ in range(self.population_size):
             network = create_neural_network()
             population.append(network)
 
+        best_fitness_so_far = 0
+        gen_stuck_count = 0
         for generation in range(GENERATIONS):
             print(f"Generation {generation+1}/{GENERATIONS}")
 
-            # Evaluation
+            # Evaluating the fitness of each network in the current population
             fitness_scores = []
             for network in population:
                 fitness = evaluate_fitness(network, x_train, y_train)
                 fitness_scores.append(fitness)
 
-            print(f"Generation {generation+1} best score is: {max(fitness_scores)}")
-            print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
-            # Selection
-            sorted_indices = np.argsort(fitness_scores)[::-1]
-            selected_population = [population[i] for i in sorted_indices[:int(self.population_size * ELITE_SIZE)]]
-            remaining_population = list(set(population) - set(selected_population))
+            curr_gen_best_fitness = max(fitness_scores)
+            print(f"Generation {generation+1} best fitness score is: {max(fitness_scores)}")
+            # print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
 
-            # Crossover
+            # Check for convergence
+            if curr_gen_best_fitness > best_fitness_so_far:
+                best_fitness_so_far = curr_gen_best_fitness
+                # Reset stuck count if there's improvement
+                gen_stuck_count = 0
+            else:
+                # Increment stuck count if no improvement
+                gen_stuck_count += 1
+
+            if gen_stuck_count >= STUCK_THRESHOLD:
+                # If no improvement for 20 generations, stop the process
+                print("Convergence reached. stuck for ", STUCK_THRESHOLD, " generations")
+                break
+
+            # Selecting the top performing networks (elites)
+            sorted_indices = np.argsort(fitness_scores)[::-1]
+            elite_population = [population[i] for i in sorted_indices[:int(self.population_size * ELITE_SIZE)]]
+            # Remaining population after elites have been selected
+            remaining_population = list(set(population) - set(elite_population))
+
+            # Creating offspring population via crossover
             offspring_population = []
-            for _ in range(self.population_size - len(selected_population)):
+            # TODO: if desperate with low accuracy - try where each parent is chosen once for crossover
+            for _ in range(self.population_size - len(elite_population)):
                 parent1 = np.random.choice(remaining_population)
-                parent2 = np.random.choice(selected_population)
+                parent2 = np.random.choice(elite_population)
                 offspring = parent1.crossover(parent2)
                 offspring_population.append(offspring)
 
-            # Mutation
-            for offspring in offspring_population:
+            # Save some offspring untouched for the next gen population
+            untouched_offspring = offspring_population[:int(len(offspring_population) * OFFSPRING_UNTOUCHED)]
+
+            # Mutate the remaining (touched) offspring population
+            for offspring in offspring_population[int(len(offspring_population) * OFFSPRING_UNTOUCHED):]:
                 offspring.mutate()
 
-            # Combine selected and offspring populations
-            population = selected_population + offspring_population
+            # Combine elites, untouched offspring and mutated offspring to create the next gen population
+            population = elite_population + untouched_offspring + offspring_population
+
             # Lamarckian method:
             # new_population = []
             # for network in population:
             #     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
             # population = new_population
-
-
-        # Select the best individual from the final population
+        
+        # evaluate the fitness of the last gen population, and select the network with the best fitness 
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
-        best_individual = population[np.argmax(fitness_scores)]
-        return best_individual
-
+        best_network = population[np.argmax(fitness_scores)]
+        return best_network
 
     def lamarckian_evolution(self, network, x_train, y_train):
         old_fitness = evaluate_fitness(network, x_train, y_train)
@@ -183,22 +226,42 @@ class Layer:
 
 
 class NeuralNetwork:
+    """
+        This class represents a simple feed-forward neural network.
+        The network consists of several layers, each represented by a Layer object.
+        The network uses these layers to transform its input data when the predict() method is called.
+        The class also includes crossover() and mutate() methods.
+    """
     def __init__(self):
+        # List to hold all layers of the neural network
         self.layers = []
 
     def add_layer(self, layer):
+        # Appends a new layer to the network
         self.layers.append(layer)
 
     def predict(self, inputs):
+        # Passes the inputs through each layer of the network
         outputs = inputs
         for layer in self.layers:
             outputs = layer.forward(outputs)
+        # Converts the output of the final layer to binary predictions
         binary_predictions = (outputs > 0.5).astype(int)
         return binary_predictions.flatten()
 
     def crossover(self, other_network):
+        """
+            performs a crossover operation between this NeuralNetwork instance and another.
+            The crossover combines the weights of the two parents,
+            to generate a new offspring network with weights inherited from both parents.
+        """
+        # Create the new neural network which will be our offspring
         new_network = create_neural_network()
+
         for i in range(len(self.layers)):
+            # For each layer, we decide from which parent to inherit the weights.
+            # This is done randomly: we generate a random number and if it's greater than 0.5,
+            # we inherit from the current network. otherwise, we inherit from the other network.
             if np.random.rand() > 0.5:
                 new_network.layers[i].weights = np.copy(self.layers[i].weights)
             else:
@@ -207,14 +270,15 @@ class NeuralNetwork:
 
     def mutate(self):
         """
-        the mutation process randomly selects a subset of weights in each layer based on the mutation rate.
-        For the selected weights, a random value is added to introduce variation.
-        This helps in exploring different regions of the solution space during the genetic algorithm optimization process
+        The method is used to randomly adjust the weights in the network's layers to introduce variation.
+        the mutation process randomly selects a subset of weights in each layer based on the MUTATION_RATE.
+        For the selected weights, a random value (pos/neg) is added to introduce variation.
         """
         for layer in self.layers:
+            # Generate a mask for the weights to be mutated
             mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+            # Add random noise to selected weights
             layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
-
 
 
 # Main
@@ -222,6 +286,6 @@ genetic_algorithm = GeneticAlgorithm()
 best_network = genetic_algorithm.evolve(x_train, y_train)
 
 # Testing
-predictions = best_network.predict(x_test)
-accuracy = compute_accuracy_score(y_test, predictions)
+test_predictions = best_network.predict(x_test)
+accuracy = compute_accuracy_score(y_test, test_predictions)
 print(f"Test Accuracy: {accuracy}")
