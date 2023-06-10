@@ -100,8 +100,6 @@ class GeneticAlgorithm:
 
     def __init__(self):
         self.population_size = POPULATION_SIZE
-        self.mutation_rate = MUTATION_RATE
-        self.nn_list = None
 
     def evolve(self, x_train, y_train):
         population = []
@@ -144,6 +142,9 @@ class GeneticAlgorithm:
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_individual = population[np.argmax(fitness_scores)]
         return best_individual
+
+    def lemarkian_evolution(self):
+        pass
 
 
 # Neural Network Implementation
@@ -194,14 +195,6 @@ class NeuralNetwork:
             layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
 
 
-# for testing:
-# network = create_neural_network()
-# fitness_scores = []
-# for _ in range(20):
-#     fitness = evaluate_fitness(network, x_train, y_train)
-#     fitness_scores.append(fitness)
-#
-# print(fitness_scores)
 
 # Main
 genetic_algorithm = GeneticAlgorithm()
