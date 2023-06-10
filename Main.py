@@ -1,15 +1,21 @@
 import numpy as np
+import copy
+from statistics import mean
+
+from warnings import filterwarnings
+filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 50
-MUTATION_RATE = 0.1
-GENERATIONS = 20
-ELITE_SIZE = 0.5
+POPULATION_SIZE = 150
+MUTATION_RATE = 0.2
+GENERATIONS = 150
+ELITE_SIZE = 0.1
+LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 8
-HIDDEN_SIZE_2 = 8
+HIDDEN_SIZE_1 = 64
+HIDDEN_SIZE_2 = 32
 OUTPUT_SIZE = 1
 
 
@@ -55,7 +61,7 @@ def split_train_test(data, labels, test_size=0.2):
 
 
 # get the data and labels from chosen txt file
-data, labels = load_data("nn0_test_file.txt")
+data, labels = load_data("nn1.txt")
 # Split the data into train and test sets
 x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
 
@@ -117,6 +123,7 @@ class GeneticAlgorithm:
                 fitness_scores.append(fitness)
 
             print(f"Generation {generation+1} best score is: {max(fitness_scores)}")
+            print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
             # Selection
             sorted_indices = np.argsort(fitness_scores)[::-1]
             selected_population = [population[i] for i in sorted_indices[:int(self.population_size * ELITE_SIZE)]]
@@ -136,6 +143,11 @@ class GeneticAlgorithm:
 
             # Combine selected and offspring populations
             population = selected_population + offspring_population
+            # Lamarckian method:
+            # new_population = []
+            # for network in population:
+            #     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
+            # population = new_population
 
 
         # Select the best individual from the final population
@@ -143,8 +155,17 @@ class GeneticAlgorithm:
         best_individual = population[np.argmax(fitness_scores)]
         return best_individual
 
-    def lemarkian_evolution(self):
-        pass
+
+    def lamarckian_evolution(self, network, x_train, y_train):
+        old_fitness = evaluate_fitness(network, x_train, y_train)
+        new_network = copy.deepcopy(network)
+        for _ in range(LAMARCKIAN_MUTATIONS):
+            new_network.mutate()
+        new_fitness = evaluate_fitness(new_network, x_train, y_train)
+        if new_fitness > old_fitness:
+            return new_network
+        else:
+            return network
 
 
 # Neural Network Implementation
