@@ -6,12 +6,12 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 150
+POPULATION_SIZE = 200
 MUTATION_RATE = 0.2
-GENERATIONS = 100
-ELITE_SIZE = 0.1
-OFFSPRING_UNTOUCHED = 0.2
-STUCK_THRESHOLD = 30
+GENERATIONS = 200
+ELITE_SIZE = 0.15
+OFFSPRING_UNTOUCHED = 0.3
+STUCK_THRESHOLD = 25
 LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
@@ -101,6 +101,12 @@ def compute_accuracy_score(y_train, predictions):
     accuracy = correct_predictions / num_samples
     return accuracy
 
+# attempt for a different fitness function - seems to work worse
+# from sklearn.metrics import precision_score
+# def evaluate_fitness(network, x_train, y_train):
+#     predictions = network.predict(x_train)
+#     return precision_score(y_train, predictions)
+
 
 def evaluate_fitness(network, x_train, y_train):
     """
@@ -143,10 +149,10 @@ class GeneticAlgorithm:
             fitness_scores = []
             for network in population:
                 fitness = evaluate_fitness(network, x_train, y_train)
-                fitness_scores.append(fitness)
+                fitness_scores.append(round(fitness, 5))
 
             curr_gen_best_fitness = max(fitness_scores)
-            print(f"Generation {generation+1} best fitness score is: {max(fitness_scores)}")
+            print(f"Generation {generation+1} best fitness score: {max(fitness_scores)}")
             # print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
 
             # Check for convergence
@@ -171,22 +177,25 @@ class GeneticAlgorithm:
 
             # Creating offspring population via crossover
             offspring_population = []
+            num_offsprings = self.population_size - len(elite_population)
             # TODO: if desperate with low accuracy - try where each parent is chosen once for crossover
-            for _ in range(self.population_size - len(elite_population)):
+            for _ in range(num_offsprings):
                 parent1 = np.random.choice(remaining_population)
                 parent2 = np.random.choice(elite_population)
                 offspring = parent1.crossover(parent2)
                 offspring_population.append(offspring)
 
             # Save some offspring untouched for the next gen population
-            untouched_offspring = offspring_population[:int(len(offspring_population) * OFFSPRING_UNTOUCHED)]
+            num_untouched_offspring = int(num_offsprings * OFFSPRING_UNTOUCHED)
+            untouched_offspring = offspring_population[:num_untouched_offspring]
 
             # Mutate the remaining (touched) offspring population
-            for offspring in offspring_population[int(len(offspring_population) * OFFSPRING_UNTOUCHED):]:
+            for offspring in offspring_population[num_untouched_offspring:]:
                 offspring.mutate()
 
             # Combine elites, untouched offspring and mutated offspring to create the next gen population
-            population = elite_population + untouched_offspring + offspring_population
+            population = elite_population + untouched_offspring + offspring_population[num_untouched_offspring:]
+            print(len(population))
 
             # Lamarckian method:
             # new_population = []
