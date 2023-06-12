@@ -196,7 +196,7 @@ class GeneticAlgorithm:
             # Combine elites, untouched offspring and mutated offspring to create the next gen population
             population = elite_population + untouched_offspring + offspring_population[num_untouched_offspring:]
 
-            if gen_stuck_count > 5:
+            if gen_stuck_count > 3:
                 # Lamarckian method:
                 print("Lamarckian evolution")
                 new_population = []
@@ -234,6 +234,9 @@ class Layer:
         if self.activation:
             output = sigmoid(output)
         return output
+
+    def get_shape(self):
+        return self.weights.shape, self.activation
 
 
 class NeuralNetwork:
@@ -285,11 +288,16 @@ class NeuralNetwork:
         the mutation process randomly selects a subset of weights in each layer based on the MUTATION_RATE.
         For the selected weights, a random value (pos/neg) is added to introduce variation.
         """
+        # for layer in self.layers:
+        #     # Generate a mask for the weights to be mutated
+        #     mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+        #     # Add random noise to selected weights
+        #     layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
         for layer in self.layers:
             # Generate a mask for the weights to be mutated
             mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
-            # Add random noise to selected weights
-            layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
+            # Add random values from -1 to 1 to the selected weights
+            layer.weights[mask] += np.random.uniform(-1, 1, size=layer.weights.shape)[mask]
 
 
 # Main
