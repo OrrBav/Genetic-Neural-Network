@@ -6,17 +6,17 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 200
-MUTATION_RATE = 0.2
+POPULATION_SIZE = 250
+MUTATION_RATE = 0.3
 GENERATIONS = 200
-ELITE_SIZE = 0.15
+ELITE_SIZE = 0.1
 OFFSPRING_UNTOUCHED = 0.3
 STUCK_THRESHOLD = 25
-LAMARCKIAN_MUTATIONS = 5
+LAMARCKIAN_MUTATIONS = 3
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 8
+HIDDEN_SIZE_1 = 16
 HIDDEN_SIZE_2 = 8
 OUTPUT_SIZE = 1
 
@@ -77,9 +77,9 @@ def create_neural_network():
     model = NeuralNetwork()
     # TODO: add more hidden layers
     model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
-    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2))
+    model.add_layer(Layer(HIDDEN_SIZE_1, OUTPUT_SIZE, 1))
     # activation layer
-    model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, 1))
+    # model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, 1))
     return model
 
 
@@ -195,13 +195,14 @@ class GeneticAlgorithm:
 
             # Combine elites, untouched offspring and mutated offspring to create the next gen population
             population = elite_population + untouched_offspring + offspring_population[num_untouched_offspring:]
-            print(len(population))
 
-            # Lamarckian method:
-            # new_population = []
-            # for network in population:
-            #     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
-            # population = new_population
+            if gen_stuck_count > 5:
+                # Lamarckian method:
+                print("Lamarckian evolution")
+                new_population = []
+                for network in population:
+                    new_population.append(self.lamarckian_evolution(network, x_train, y_train))
+                population = new_population
         
         # evaluate the fitness of the last gen population, and select the network with the best fitness 
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
@@ -223,8 +224,9 @@ class GeneticAlgorithm:
 # Neural Network Implementation
 class Layer:
     def __init__(self, input_size, output_size, activation=0):
-        # todo: change to a different distribution?
-        self.weights = np.random.randn(input_size, output_size)
+        # Xavier initialization
+        self.weights = np.random.randn(input_size, output_size) * np.sqrt(1 / input_size)
+        # self.weights = np.random.randn(input_size, output_size)
         self.activation = activation
 
     def forward(self, inputs):
