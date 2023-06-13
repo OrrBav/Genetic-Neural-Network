@@ -19,7 +19,6 @@ LAMARCKIAN_MUTATIONS = 3
 INPUT_SIZE = 16
 HIDDEN_SIZE_1 = 64
 HIDDEN_SIZE_2 = 32
-HIDDEN_SIZE_3 = 32
 OUTPUT_SIZE = 1
 
 
@@ -80,9 +79,8 @@ def create_neural_network():
     # TODO: add more hidden layers
     model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
     model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2))
-    model.add_layer(Layer(HIDDEN_SIZE_2, HIDDEN_SIZE_3))
     # activation layer
-    model.add_layer(Layer(HIDDEN_SIZE_3, OUTPUT_SIZE, activation=1))
+    model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, activation=1))
     return model
 
 
