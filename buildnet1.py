@@ -1,8 +1,10 @@
 import numpy as np
 import copy
+import random
 from statistics import mean
 
 from warnings import filterwarnings
+
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
@@ -16,8 +18,9 @@ LAMARCKIAN_MUTATIONS = 3
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 16
-HIDDEN_SIZE_2 = 8
+HIDDEN_SIZE_1 = 64
+HIDDEN_SIZE_2 = 32
+HIDDEN_SIZE_3 = 32
 OUTPUT_SIZE = 1
 
 
@@ -63,7 +66,7 @@ def split_train_test(data, labels, test_size=0.2):
 
 
 # get the data and labels from chosen txt file
-data, labels = load_data("nn0.txt")
+data, labels = load_data("nn1.txt")
 # Split the data into train and test sets
 x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
 
@@ -77,9 +80,10 @@ def create_neural_network():
     model = NeuralNetwork()
     # TODO: add more hidden layers
     model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
-    model.add_layer(Layer(HIDDEN_SIZE_1, OUTPUT_SIZE, 1))
+    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2))
+    model.add_layer(Layer(HIDDEN_SIZE_2, HIDDEN_SIZE_3))
     # activation layer
-    # model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, 1))
+    model.add_layer(Layer(HIDDEN_SIZE_3, OUTPUT_SIZE, activation=1))
     return model
 
 
@@ -101,6 +105,7 @@ def compute_accuracy_score(y_train, predictions):
     accuracy = correct_predictions / num_samples
     return accuracy
 
+
 # attempt for a different fitness function - seems to work worse
 # from sklearn.metrics import precision_score
 # def evaluate_fitness(network, x_train, y_train):
@@ -121,6 +126,14 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
+def relu(x):
+    return np.maximum(0, x)
+
+
+def leaky_relu(x):
+    return np.maximum(0.1 * x, x)
+
+
 class GeneticAlgorithm:
     """
         This class represents a genetic algorithm for optimizing the structure and parameters of a neural network.
@@ -133,6 +146,24 @@ class GeneticAlgorithm:
     def __init__(self):
         self.population_size = POPULATION_SIZE
 
+    # Tournament Selection
+    def tournament_selection(self, population, tournament_size):
+        selected_parents = []
+        for _ in range(len(population)):
+            # Randomly select tournament participants
+            participants = random.sample(population, tournament_size)
+            # Evaluate their fitness and select the best one
+            best_participant = max(participants, key=lambda network: evaluate_fitness(network, x_train, y_train))
+            selected_parents.append(best_participant)
+        return selected_parents
+
+    # Rank Selection
+    def rank_selection(self, population):
+        ranked_population = sorted(population, key=lambda network: evaluate_fitness(network, x_train, y_train))
+        selection_probs = [rank / len(ranked_population) for rank in range(1, len(ranked_population) + 1)]
+        selected_parents = random.choices(ranked_population, weights=selection_probs, k=len(population))
+        return selected_parents
+
     def evolve(self, x_train, y_train):
         # Creating an initial population of neural networks
         population = []
@@ -143,7 +174,7 @@ class GeneticAlgorithm:
         best_fitness_so_far = 0
         gen_stuck_count = 0
         for generation in range(GENERATIONS):
-            print(f"Generation {generation+1}/{GENERATIONS}")
+            print(f"Generation {generation + 1}/{GENERATIONS}")
 
             # Evaluating the fitness of each network in the current population
             fitness_scores = []
@@ -152,7 +183,7 @@ class GeneticAlgorithm:
                 fitness_scores.append(round(fitness, 5))
 
             curr_gen_best_fitness = max(fitness_scores)
-            print(f"Generation {generation+1} best fitness score: {max(fitness_scores)}")
+            print(f"Generation {generation + 1} best fitness score: {max(fitness_scores)}")
             # print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
 
             # Check for convergence
@@ -178,9 +209,16 @@ class GeneticAlgorithm:
             # Creating offspring population via crossover
             offspring_population = []
             num_offsprings = self.population_size - len(elite_population)
+
+            # Tournament Selection
+            # selected_parents = self.tournament_selection(remaining_population, tournament_size=2)
+
+            # Rank Selection
+            selected_parents = self.rank_selection(remaining_population)
+
             # TODO: if desperate with low accuracy - try where each parent is chosen once for crossover
             for _ in range(num_offsprings):
-                parent1 = np.random.choice(remaining_population)
+                parent1 = np.random.choice(selected_parents)
                 parent2 = np.random.choice(elite_population)
                 offspring = parent1.crossover(parent2)
                 offspring_population.append(offspring)
@@ -203,8 +241,8 @@ class GeneticAlgorithm:
                 for network in population:
                     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
                 population = new_population
-        
-        # evaluate the fitness of the last gen population, and select the network with the best fitness 
+
+        # evaluate the fitness of the last gen population, and select the network with the best fitness
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_network = population[np.argmax(fitness_scores)]
         return best_network
@@ -232,7 +270,7 @@ class Layer:
     def forward(self, inputs):
         output = np.dot(inputs, self.weights)
         if self.activation:
-            output = sigmoid(output)
+            output = leaky_relu(output)
         return output
 
     def get_shape(self):
@@ -246,6 +284,7 @@ class NeuralNetwork:
         The network uses these layers to transform its input data when the predict() method is called.
         The class also includes crossover() and mutate() methods.
     """
+
     def __init__(self):
         # List to hold all layers of the neural network
         self.layers = []
@@ -269,17 +308,24 @@ class NeuralNetwork:
             The crossover combines the weights of the two parents,
             to generate a new offspring network with weights inherited from both parents.
         """
-        # Create the new neural network which will be our offspring
-        new_network = create_neural_network()
+        # # Create the new neural network which will be our offspring
+        # new_network = create_neural_network()
+        #
+        # for i in range(len(self.layers)):
+        #     # For each layer, we decide from which parent to inherit the weights.
+        #     # This is done randomly: we generate a random number and if it's greater than 0.5,
+        #     # we inherit from the current network. otherwise, we inherit from the other network.
+        #     if np.random.rand() > 0.5:
+        #         new_network.layers[i].weights = np.copy(self.layers[i].weights)
+        #     else:
+        #         new_network.layers[i].weights = np.copy(other_network.layers[i].weights)
+        # return new_network
 
+        new_network = create_neural_network()
         for i in range(len(self.layers)):
-            # For each layer, we decide from which parent to inherit the weights.
-            # This is done randomly: we generate a random number and if it's greater than 0.5,
-            # we inherit from the current network. otherwise, we inherit from the other network.
-            if np.random.rand() > 0.5:
-                new_network.layers[i].weights = np.copy(self.layers[i].weights)
-            else:
-                new_network.layers[i].weights = np.copy(other_network.layers[i].weights)
+            alpha = np.random.uniform(0.0, 1.0, size=self.layers[i].weights.shape)
+            new_network.layers[i].weights = alpha * self.layers[i].weights + (1 - alpha) * other_network.layers[
+                i].weights
         return new_network
 
     def mutate(self):
@@ -289,15 +335,25 @@ class NeuralNetwork:
         For the selected weights, a random value (pos/neg) is added to introduce variation.
         """
         # for layer in self.layers:
-        #     # Generate a mask for the weights to be mutated
-        #     mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
-        #     # Add random noise to selected weights
-        #     layer.weights[mask] += np.random.randn(*layer.weights.shape)[mask]
+        #     for _ in range (3):
+        #         # Generate a mask for the weights to be mutated
+        #         mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+        #         # Add random values from -1 to 1 to the selected weights
+        #         layer.weights[mask] += np.random.uniform(-1, 1, size=layer.weights.shape)[mask]
+
         for layer in self.layers:
-            # Generate a mask for the weights to be mutated
-            mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
-            # Add random values from -1 to 1 to the selected weights
-            layer.weights[mask] += np.random.uniform(-1, 1, size=layer.weights.shape)[mask]
+            for _ in range(3):
+                mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+                mutation_indices = np.where(mask)
+                num_mutations = len(mutation_indices[0])
+
+                if num_mutations < 2:
+                    continue
+
+                random_indices = np.random.choice(num_mutations, size=2, replace=False)
+                swap_indices = mutation_indices[0][random_indices]
+                layer.weights[swap_indices[0]], layer.weights[swap_indices[1]] = \
+                    layer.weights[swap_indices[1]], layer.weights[swap_indices[0]]
 
 
 # Main
