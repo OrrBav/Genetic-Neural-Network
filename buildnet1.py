@@ -19,13 +19,13 @@ LAMARCKIAN_MUTATIONS = 6
 
 # Neural Network parameters
 INPUT_SIZE = 16
-# 100
 HIDDEN_SIZE_1 = 64
-# 50
 HIDDEN_SIZE_2 = 32
 HIDDEN_SIZE_3 = 32
 OUTPUT_SIZE = 1
 
+# Global Variables
+best_fitness_list = []
 
 def load_data(filename):
     """
@@ -153,6 +153,7 @@ class GeneticAlgorithm:
     def evolve(self, x_train, y_train):
         # Creating an initial population of neural networks
         population = []
+        global best_fitness_list
         for _ in range(self.population_size):
             network = create_neural_network()
             population.append(network)
@@ -170,6 +171,7 @@ class GeneticAlgorithm:
 
             curr_gen_best_fitness = max(fitness_scores)
             print(f"Generation {generation + 1} best fitness score: {max(fitness_scores)}")
+            best_fitness_list.append(curr_gen_best_fitness)
             # print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
 
             # Check for convergence
@@ -227,6 +229,7 @@ class GeneticAlgorithm:
 
         # evaluate the fitness of the last gen population, and select the network with the best fitness
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
+        best_fitness_list.append(max(fitness_scores))
         best_network = population[np.argmax(fitness_scores)]
         return best_network
 
