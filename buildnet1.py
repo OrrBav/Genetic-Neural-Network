@@ -2,23 +2,26 @@ import numpy as np
 import copy
 import random
 from statistics import mean
+import time
 
 from warnings import filterwarnings
 
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 250
+POPULATION_SIZE = 200
 MUTATION_RATE = 0.3
-GENERATIONS = 200
+GENERATIONS = 300
 ELITE_SIZE = 0.1
-OFFSPRING_UNTOUCHED = 0.3
-STUCK_THRESHOLD = 25
-LAMARCKIAN_MUTATIONS = 3
+OFFSPRING_UNTOUCHED = 0.05
+STUCK_THRESHOLD = 15
+LAMARCKIAN_MUTATIONS = 6
 
 # Neural Network parameters
 INPUT_SIZE = 16
+# 100
 HIDDEN_SIZE_1 = 64
+# 50
 HIDDEN_SIZE_2 = 32
 HIDDEN_SIZE_3 = 32
 OUTPUT_SIZE = 1
@@ -79,11 +82,11 @@ def create_neural_network():
        """
     model = NeuralNetwork()
     # TODO: add more hidden layers
-    model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
-    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2))
-    model.add_layer(Layer(HIDDEN_SIZE_2, HIDDEN_SIZE_3))
+    model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1, activation=lambda x: relu(x)))
+    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2, activation=lambda x: relu(x)))
+    # model.add_layer(Layer(HIDDEN_SIZE_2, HIDDEN_SIZE_3, activation=lambda x: relu(x)))
     # activation layer
-    model.add_layer(Layer(HIDDEN_SIZE_3, OUTPUT_SIZE, activation=1))
+    model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, activation=lambda x: sigmoid(x)))
     return model
 
 
@@ -261,7 +264,7 @@ class GeneticAlgorithm:
 
 # Neural Network Implementation
 class Layer:
-    def __init__(self, input_size, output_size, activation=0):
+    def __init__(self, input_size, output_size, activation=lambda x: sigmoid(x)):
         # Xavier initialization
         self.weights = np.random.randn(input_size, output_size) * np.sqrt(1 / input_size)
         # self.weights = np.random.randn(input_size, output_size)
@@ -269,8 +272,7 @@ class Layer:
 
     def forward(self, inputs):
         output = np.dot(inputs, self.weights)
-        if self.activation:
-            output = leaky_relu(output)
+        output = self.activation(output)
         return output
 
     def get_shape(self):
@@ -299,7 +301,7 @@ class NeuralNetwork:
         for layer in self.layers:
             outputs = layer.forward(outputs)
         # Converts the output of the final layer to binary predictions
-        binary_predictions = (outputs > 0.5).astype(int)
+        binary_predictions = (outputs > 0.3).astype(int)
         return binary_predictions.flatten()
 
     def crossover(self, other_network):
@@ -334,28 +336,31 @@ class NeuralNetwork:
         the mutation process randomly selects a subset of weights in each layer based on the MUTATION_RATE.
         For the selected weights, a random value (pos/neg) is added to introduce variation.
         """
-        # for layer in self.layers:
-        #     for _ in range (3):
-        #         # Generate a mask for the weights to be mutated
-        #         mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
-        #         # Add random values from -1 to 1 to the selected weights
-        #         layer.weights[mask] += np.random.uniform(-1, 1, size=layer.weights.shape)[mask]
-
+        '''
         for layer in self.layers:
-            for _ in range(3):
+            for _ in range (3):
+                # Generate a mask for the weights to be mutated
                 mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
-                mutation_indices = np.where(mask)
-                num_mutations = len(mutation_indices[0])
+                # Add random values from -1 to 1 to the selected weights
+                layer.weights[mask] += np.random.uniform(-1, 1, size=layer.weights.shape)[mask]
+        '''
+        for layer in self.layers:
+            mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+            mutation_indices = np.where(mask)
+            num_mutations = len(mutation_indices[0])
 
-                if num_mutations < 2:
-                    continue
+            if num_mutations < 2:
+                continue
 
-                random_indices = np.random.choice(num_mutations, size=2, replace=False)
-                swap_indices = mutation_indices[0][random_indices]
-                layer.weights[swap_indices[0]], layer.weights[swap_indices[1]] = \
-                    layer.weights[swap_indices[1]], layer.weights[swap_indices[0]]
+            random_indices = np.random.choice(num_mutations, size=2, replace=False)
+            swap_indices = mutation_indices[0][random_indices]
+
+            temp = layer.weights[swap_indices[0]]
+            layer.weights[swap_indices[0]] = layer.weights[swap_indices[1]]
+            layer.weights[swap_indices[1]] = temp
 
 
+start_time = time.time()
 # Main
 genetic_algorithm = GeneticAlgorithm()
 best_network = genetic_algorithm.evolve(x_train, y_train)
@@ -364,3 +369,8 @@ best_network = genetic_algorithm.evolve(x_train, y_train)
 test_predictions = best_network.predict(x_test)
 accuracy = compute_accuracy_score(y_test, test_predictions)
 print(f"Test Accuracy: {accuracy}")
+end_time = time.time()
+runtime = end_time - start_time
+minutes = round(runtime / 60)
+seconds = runtime % 60
+print(f"Runtime: {minutes} minutes and {round(seconds, 1)} seconds")

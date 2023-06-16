@@ -2,23 +2,25 @@ import numpy as np
 import copy
 import random
 from statistics import mean
+import time
 
 from warnings import filterwarnings
+
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 250
+POPULATION_SIZE = 300
 MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
-OFFSPRING_UNTOUCHED = 0.3
-STUCK_THRESHOLD = 25
-LAMARCKIAN_MUTATIONS = 3
+OFFSPRING_UNTOUCHED = 0.05
+STUCK_THRESHOLD = 15
+LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 64
-HIDDEN_SIZE_2 = 32
+HIDDEN_SIZE_1 = 16
+HIDDEN_SIZE_2 = 16
 OUTPUT_SIZE = 1
 
 
@@ -77,10 +79,10 @@ def create_neural_network():
        """
     model = NeuralNetwork()
     # TODO: add more hidden layers
-    model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1))
-    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2))
+    model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1, activation=lambda x: relu(x)))
+    # model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2, activation=lambda x: relu(x)))
     # activation layer
-    model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, activation=1))
+    model.add_layer(Layer(HIDDEN_SIZE_1, OUTPUT_SIZE, activation=lambda x: sigmoid(x)))
     return model
 
 
@@ -101,6 +103,7 @@ def compute_accuracy_score(y_train, predictions):
     # Compute accuracy as the ratio of correct predictions to total number of samples
     accuracy = correct_predictions / num_samples
     return accuracy
+
 
 # attempt for a different fitness function - seems to work worse
 # from sklearn.metrics import precision_score
@@ -127,7 +130,12 @@ def relu(x):
 
 
 def leaky_relu(x):
-    return np.maximum(0.1*x, x)
+    return np.maximum(0.1 * x, x)
+
+
+def tanh(x):
+    return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+
 
 class GeneticAlgorithm:
     """
@@ -169,7 +177,7 @@ class GeneticAlgorithm:
         best_fitness_so_far = 0
         gen_stuck_count = 0
         for generation in range(GENERATIONS):
-            print(f"Generation {generation+1}/{GENERATIONS}")
+            print(f"Generation {generation + 1}/{GENERATIONS}")
 
             # Evaluating the fitness of each network in the current population
             fitness_scores = []
@@ -178,7 +186,7 @@ class GeneticAlgorithm:
                 fitness_scores.append(round(fitness, 5))
 
             curr_gen_best_fitness = max(fitness_scores)
-            print(f"Generation {generation+1} best fitness score: {max(fitness_scores)}")
+            print(f"Generation {generation + 1} best fitness score: {max(fitness_scores)}")
             # print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
 
             # Check for convergence
@@ -236,8 +244,8 @@ class GeneticAlgorithm:
                 for network in population:
                     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
                 population = new_population
-        
-        # evaluate the fitness of the last gen population, and select the network with the best fitness 
+
+        # evaluate the fitness of the last gen population, and select the network with the best fitness
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_network = population[np.argmax(fitness_scores)]
         return best_network
@@ -256,7 +264,7 @@ class GeneticAlgorithm:
 
 # Neural Network Implementation
 class Layer:
-    def __init__(self, input_size, output_size, activation=0):
+    def __init__(self, input_size, output_size, activation=lambda x: sigmoid(x)):
         # Xavier initialization
         self.weights = np.random.randn(input_size, output_size) * np.sqrt(1 / input_size)
         # self.weights = np.random.randn(input_size, output_size)
@@ -264,8 +272,7 @@ class Layer:
 
     def forward(self, inputs):
         output = np.dot(inputs, self.weights)
-        if self.activation:
-            output = leaky_relu(output)
+        output = self.activation(output)
         return output
 
     def get_shape(self):
@@ -279,6 +286,7 @@ class NeuralNetwork:
         The network uses these layers to transform its input data when the predict() method is called.
         The class also includes crossover() and mutate() methods.
     """
+
     def __init__(self):
         # List to hold all layers of the neural network
         self.layers = []
@@ -293,7 +301,7 @@ class NeuralNetwork:
         for layer in self.layers:
             outputs = layer.forward(outputs)
         # Converts the output of the final layer to binary predictions
-        binary_predictions = (outputs > 0.5).astype(int)
+        binary_predictions = (outputs > 0.6).astype(int)
         return binary_predictions.flatten()
 
     def crossover(self, other_network):
@@ -336,7 +344,7 @@ class NeuralNetwork:
         #         layer.weights[mask] += np.random.uniform(-1, 1, size=layer.weights.shape)[mask]
 
         for layer in self.layers:
-            for _ in range(3):
+            for _ in range(2):
                 mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
                 mutation_indices = np.where(mask)
                 num_mutations = len(mutation_indices[0])
@@ -346,10 +354,13 @@ class NeuralNetwork:
 
                 random_indices = np.random.choice(num_mutations, size=2, replace=False)
                 swap_indices = mutation_indices[0][random_indices]
-                layer.weights[swap_indices[0]], layer.weights[swap_indices[1]] = \
-                    layer.weights[swap_indices[1]], layer.weights[swap_indices[0]]
+
+                temp = layer.weights[swap_indices[0]]
+                layer.weights[swap_indices[0]] = layer.weights[swap_indices[1]]
+                layer.weights[swap_indices[1]] = temp
 
 
+start_time = time.time()
 # Main
 genetic_algorithm = GeneticAlgorithm()
 best_network = genetic_algorithm.evolve(x_train, y_train)
@@ -358,3 +369,6 @@ best_network = genetic_algorithm.evolve(x_train, y_train)
 test_predictions = best_network.predict(x_test)
 accuracy = compute_accuracy_score(y_test, test_predictions)
 print(f"Test Accuracy: {accuracy}")
+end_time = time.time()
+runtime = end_time - start_time
+print("Runtime:", runtime)
