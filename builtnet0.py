@@ -1,7 +1,6 @@
 import numpy as np
 import copy
 import random
-from statistics import mean
 import time
 
 from warnings import filterwarnings
@@ -9,12 +8,12 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 300
+POPULATION_SIZE = 200
 MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
 OFFSPRING_UNTOUCHED = 0.05
-STUCK_THRESHOLD = 15
+STUCK_THRESHOLD = 20
 LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
@@ -23,8 +22,9 @@ HIDDEN_SIZE_1 = 16
 HIDDEN_SIZE_2 = 16
 OUTPUT_SIZE = 1
 
-# Global Variables
+# Global Variables for plot
 best_fitness_list = []
+
 
 def load_data(filename):
     """
@@ -170,11 +170,14 @@ class GeneticAlgorithm:
                 fitness_scores.append(round(fitness, 5))
 
             curr_gen_best_fitness = max(fitness_scores)
-            print(f"Generation {generation + 1} best fitness score: {max(fitness_scores)}")
+            print(f"Generation {generation + 1} best fitness score: {curr_gen_best_fitness}")
             best_fitness_list.append(curr_gen_best_fitness)
-            # print(f"Generation {generation + 1} avg score is: {round(mean(fitness_scores), 5)}")
 
-            # Check for convergence
+            # Check if the current generation has achieved maximum fitness
+            if curr_gen_best_fitness == 1.0:
+                print("successfully converged! reached maximum fitness score of ", curr_gen_best_fitness)
+                break
+            # Check for early convergence:
             if curr_gen_best_fitness > best_fitness_so_far:
                 best_fitness_so_far = curr_gen_best_fitness
                 # Reset stuck count if there's improvement
@@ -184,7 +187,7 @@ class GeneticAlgorithm:
                 gen_stuck_count += 1
 
             if gen_stuck_count >= STUCK_THRESHOLD:
-                # If no improvement for 20 generations, stop the process
+                # If no improvement for STUCK_THRESHOLD generations, stop the process
                 print("Convergence reached. stuck for ", STUCK_THRESHOLD, " generations")
                 break
 
@@ -201,7 +204,6 @@ class GeneticAlgorithm:
             # Rank Selection
             selected_parents = self.rank_selection(remaining_population)
 
-            # TODO: if desperate with low accuracy - try where each parent is chosen once for crossover
             for _ in range(num_offsprings):
                 parent1 = np.random.choice(selected_parents)
                 parent2 = np.random.choice(elite_population)
@@ -219,45 +221,66 @@ class GeneticAlgorithm:
             # Combine elites, untouched offspring and mutated offspring to create the next gen population
             population = elite_population + untouched_offspring + offspring_population[num_untouched_offspring:]
 
+            # If the genetic algorithm is stuck for more than 3 generations, it triggers the Lamarckian method,
+            #  in order to try and get out of a local optima.
             if gen_stuck_count > 3:
-                # Lamarckian method:
                 print("Lamarckian evolution")
                 new_population = []
+                # performe Lamarckian evolution on each network in the current population
                 for network in population:
                     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
                 population = new_population
 
+        # At the end of all the generations/stopped due to convergence/stuck-
         # evaluate the fitness of the last gen population, and select the network with the best fitness
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_fitness_list.append(max(fitness_scores))
         best_network = population[np.argmax(fitness_scores)]
         return best_network
 
+    # The lamarckian_evolution method tries a specified number of mutations,
+    # and accepts the new mutated network only if its fitness is better than the original network
     def lamarckian_evolution(self, network, x_train, y_train):
         old_fitness = evaluate_fitness(network, x_train, y_train)
+        # creating a copy of the original network so it will be mutated
         new_network = copy.deepcopy(network)
         for _ in range(LAMARCKIAN_MUTATIONS):
             new_network.mutate()
+        # The fitness of the mutated network is now evaluated
         new_fitness = evaluate_fitness(new_network, x_train, y_train)
+        # If the mutated network's fitness is better than the original one, we take the mutated network
         if new_fitness > old_fitness:
             return new_network
         else:
             return network
 
 
-# Neural Network Implementation
+# Layer Class for Neural Network
 class Layer:
+    """
+        This class represents a layer in a neural network model.
+        Attributes:
+        weights (numpy.ndarray): The weights of the nodes in the layer.
+        activation (function): The activation function for the layer.
+        The activation function is defaulted to a sigmoid function.
+    """
+
+    # Constructs all the necessary attributes for the layer object.
     def __init__(self, input_size, output_size, activation=lambda x: sigmoid(x)):
-        # Xavier initialization
+        # Weights are initialized with Xavier Initialization to optimize training speed
         self.weights = np.random.randn(input_size, output_size) * np.sqrt(1 / input_size)
-        # self.weights = np.random.randn(input_size, output_size)
+        # Activation function for the layer
         self.activation = activation
 
+    # Computes the forward propagation of the layer for given inputs
     def forward(self, inputs):
+        # Calculate output as matrix product of inputs and weights
         output = np.dot(inputs, self.weights)
+        # Apply the activation function to the output
         output = self.activation(output)
         return output
 
+    # Retrieves the shape of the layer's weights and the activation function.
     def get_shape(self):
         return self.weights.shape, self.activation
 
@@ -303,22 +326,31 @@ class NeuralNetwork:
 
     def mutate(self):
         """
-        The method is used to randomly adjust the weights in the network's layers to introduce variation.
+        The method is used to introduce variation in the population,
+        by randomly adjusting the weights in the network's layers.
         the mutation process randomly selects a subset of weights in each layer based on the MUTATION_RATE.
-        For the selected weights, a random value (pos/neg) is added to introduce variation.
+        For the selected weights, a swap of two random weights is performed.
+        This helps in introducing more diversity in the population, potentially allowing the genetic algorithm
+        to explore more diverse solutions.
         """
+
+        # Iterate through each layer in the network
         for layer in self.layers:
             for _ in range(2):
                 mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+                # Find the indices where mutation should occur
                 mutation_indices = np.where(mask)
                 num_mutations = len(mutation_indices[0])
 
+                # If less than 2 mutations, continue to next iteration
                 if num_mutations < 2:
                     continue
 
+                # Choose two random indices for swapping weights
                 random_indices = np.random.choice(num_mutations, size=2, replace=False)
                 swap_indices = mutation_indices[0][random_indices]
 
+                # Perform the weight swap to introduce mutation
                 temp = layer.weights[swap_indices[0]]
                 layer.weights[swap_indices[0]] = layer.weights[swap_indices[1]]
                 layer.weights[swap_indices[1]] = temp
