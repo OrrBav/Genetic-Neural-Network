@@ -8,12 +8,12 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 200
+POPULATION_SIZE = 100
 MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
 OFFSPRING_UNTOUCHED = 0.05
-STUCK_THRESHOLD = 20
+STUCK_THRESHOLD = 15
 LAMARCKIAN_MUTATIONS = 6
 
 # Neural Network parameters
@@ -23,7 +23,7 @@ HIDDEN_SIZE_2 = 32
 HIDDEN_SIZE_3 = 32
 OUTPUT_SIZE = 1
 
-# Global Variables for plot
+# Global Variables
 best_fitness_list = []
 
 def load_data(filename):
@@ -143,6 +143,11 @@ class GeneticAlgorithm:
 
     # Rank Selection
     def rank_selection(self, population):
+        """
+        Selects parent networks from the population based on rank-based selection.
+        :param population (list): List of neural network objects.
+        :return: list: List of selected parent networks for crossover and reproduction.
+        """
         # todo: deal with fitness here
         ranked_population = sorted(population, key=lambda network: evaluate_fitness(network, x_train, y_train))
         selection_probs = [rank / len(ranked_population) for rank in range(1, len(ranked_population) + 1)]
@@ -325,6 +330,7 @@ class NeuralNetwork:
 
     def mutate(self):
         """
+        ## TODO: CHANGE THE DOCUMENTATION
         The method is used to randomly adjust the weights in the network's layers to introduce variation.
         the mutation process randomly selects a subset of weights in each layer based on the MUTATION_RATE.
         For the selected weights, a random value (pos/neg) is added to introduce variation.

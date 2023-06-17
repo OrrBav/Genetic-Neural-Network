@@ -13,7 +13,7 @@ MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
 OFFSPRING_UNTOUCHED = 0.05
-STUCK_THRESHOLD = 20
+STUCK_THRESHOLD = 15
 LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
@@ -22,7 +22,7 @@ HIDDEN_SIZE_1 = 16
 HIDDEN_SIZE_2 = 16
 OUTPUT_SIZE = 1
 
-# Global Variables for plot
+# Global Variables
 best_fitness_list = []
 
 
@@ -307,7 +307,7 @@ class NeuralNetwork:
         for layer in self.layers:
             outputs = layer.forward(outputs)
         # Converts the output of the final layer to binary predictions
-        binary_predictions = (outputs > 0.8).astype(int)
+        binary_predictions = (outputs > 0.7).astype(int)
         return binary_predictions.flatten()
 
     def crossover(self, other_network):
