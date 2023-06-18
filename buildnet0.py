@@ -272,6 +272,9 @@ class Layer:
         # Activation function for the layer
         self.activation = activation
 
+    def set_weights(self, weights):
+        self.weights = weights
+
     def get_weights(self):
         return self.weights
 
