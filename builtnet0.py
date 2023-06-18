@@ -8,7 +8,7 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 200
+POPULATION_SIZE = 150
 MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
@@ -18,7 +18,7 @@ LAMARCKIAN_MUTATIONS = 5
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 16
+HIDDEN_SIZE_1 = 32
 HIDDEN_SIZE_2 = 16
 OUTPUT_SIZE = 1
 

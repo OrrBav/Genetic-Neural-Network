@@ -4,14 +4,12 @@ import matplotlib.pyplot as plt
 """
  compare on:
         pop size - V
-        elites?
         network sizes - V
         threshold in predict
-        diff activation functions
 """
 
 
-def plot_fitness_vs_population(pop_300, pop_200, pop_150, pop_100,pop_50):
+def plot_fitness_vs_population(pop_300, pop_200, pop_150, pop_100, pop_50):
     plt.figure(figsize=(12, 8))
     # Ensure that x-axis values (generations) align with the length of each score list
     generations_run1 = range(len(pop_300))
@@ -71,29 +69,29 @@ def plot_fitness_vs_NN0_params(hiddens_16, hiddens_32, hiddens_64, hiddens_128):
     plt.show()
 
 
-def plot_fitness_vs_NN1_params(h_16_64_32_32, h_16_16_16_16, h_16_32_32_32, h_16_64_64_64, h_16_128_128_128):
+def plot_fitness_vs_NN1_params(h_16_64_32, h_16_16_16, h_16_32_32, h_16_64_64, h_16_128_128):
     plt.figure(figsize=(12, 8))
 
     # Ensure that x-axis values (generations) align with the length of each score list
-    generations_run1 = range(len(h_16_64_32_32))
-    generations_run2 = range(len(h_16_16_16_16))
-    generations_run3 = range(len(h_16_32_32_32))
-    generations_run4 = range(len(h_16_64_64_64))
-    generations_run5 = range(len(h_16_128_128_128))
+    generations_run1 = range(len(h_16_64_32))
+    generations_run2 = range(len(h_16_16_16))
+    generations_run3 = range(len(h_16_32_32))
+    generations_run4 = range(len(h_16_64_64))
+    generations_run5 = range(len(h_16_128_128))
 
     # Plotting each run's data
-    plt.plot(generations_run1, h_16_64_32_32, label='h_16_64_32_32')
-    plt.plot(generations_run2, h_16_16_16_16, label='h_16_16_16_16')
-    plt.plot(generations_run3, h_16_32_32_32, label='h_16_32_32_32')
-    plt.plot(generations_run4, h_16_64_64_64, label='h_16_64_64_64')
-    plt.plot(generations_run5, h_16_128_128_128, label='h_16_128_128_128')
+    plt.plot(generations_run1, h_16_64_32, label='h_16_64_32')
+    plt.plot(generations_run2, h_16_16_16, label='h_16_16_16')
+    plt.plot(generations_run3, h_16_32_32, label='h_16_32_32')
+    plt.plot(generations_run4, h_16_64_64, label='h_16_64_64')
+    plt.plot(generations_run5, h_16_128_128, label='h_16_128_128')
 
     # Annotate the last point in each line
-    plt.annotate(f'{h_16_64_32_32[-1]:.2f}', (generations_run1[-1], h_16_64_32_32[-1]))
-    plt.annotate(f'{h_16_16_16_16[-1]:.2f}', (generations_run2[-1], h_16_16_16_16[-1]))
-    plt.annotate(f'{h_16_32_32_32[-1]:.2f}', (generations_run3[-1], h_16_32_32_32[-1]))
-    plt.annotate(f'{h_16_64_64_64[-1]:.2f}', (generations_run4[-1], h_16_64_64_64[-1]))
-    plt.annotate(f'{h_16_128_128_128[-1]:.2f}', (generations_run5[-1], h_16_128_128_128[-1]))
+    plt.annotate(f'{h_16_64_32[-1]:.2f}', (generations_run1[-1], h_16_64_32[-1]))
+    plt.annotate(f'{h_16_16_16[-1]:.2f}', (generations_run2[-1], h_16_16_16[-1]))
+    plt.annotate(f'{h_16_32_32[-1]:.2f}', (generations_run3[-1], h_16_32_32[-1]))
+    plt.annotate(f'{h_16_64_64[-1]:.2f}', (generations_run4[-1], h_16_64_64[-1]))
+    plt.annotate(f'{h_16_128_128[-1]:.2f}', (generations_run5[-1], h_16_128_128[-1]))
 
     # Providing labels for better readability
     plt.xlabel('Generation', fontsize=16)
@@ -102,6 +100,33 @@ def plot_fitness_vs_NN1_params(h_16_64_32_32, h_16_16_16_16, h_16_32_32_32, h_16
     plt.legend()
     plt.show()
 
+def plot_fitness_vs_predict_threshold(predict_thresh_07, predict_thresh_06, predict_thresh_05, predict_thresh_04):
+    plt.figure(figsize=(12, 8))
+
+    # Ensure that x-axis values (generations) align with the length of each score list
+    generations_run1 = range(len(predict_thresh_07))
+    generations_run2 = range(len(predict_thresh_06))
+    generations_run3 = range(len(predict_thresh_05))
+    generations_run4 = range(len(predict_thresh_04))
+
+    # Plotting each run's data
+    plt.plot(generations_run1, predict_thresh_07, label='threshold > 0.7')
+    plt.plot(generations_run2, predict_thresh_06, label='threshold > 0.6')
+    plt.plot(generations_run3, predict_thresh_05, label='threshold > 0.5')
+    plt.plot(generations_run4, predict_thresh_04, label='threshold > 0.4')
+
+    # Annotate the last point in each line
+    plt.annotate(f'{predict_thresh_07[-1]:.2f}', (generations_run1[-1], predict_thresh_07[-1]))
+    plt.annotate(f'{predict_thresh_06[-1]:.2f}', (generations_run2[-1], predict_thresh_06[-1]))
+    plt.annotate(f'{predict_thresh_05[-1]:.2f}', (generations_run3[-1], predict_thresh_05[-1]))
+    plt.annotate(f'{predict_thresh_04[-1]:.2f}', (generations_run4[-1], predict_thresh_04[-1]))
+
+    # Providing labels for better readability
+    plt.xlabel('Generation', fontsize=16)
+    plt.ylabel('Best Fitness', fontsize=16)
+    plt.title('Best Fitness VS. Different Neural Network Parameters', fontsize=16)
+    plt.legend()
+    plt.show()
 
 if __name__ == "__main__":
     pop_300 = [0.69556, 0.69556, 0.69556, 0.69556, 0.70794, 0.81737, 0.81881, 0.81881, 0.81881, 0.83106, 0.91275, 0.91275,
@@ -123,10 +148,16 @@ if __name__ == "__main__":
     # plot_fitness_vs_NN0_params(hiddens_16, hiddens_32, hiddens_64, hiddens_128)
 
     # NN_1:
-    h_16_64_32_32 = [0.70275, 0.70275, 0.70275, 0.72013, 0.72013, 0.72013, 0.72013, 0.72013, 0.84106, 0.84106, 0.84744, 0.84744, 0.84744, 0.84744, 0.85987, 0.91463, 0.91463, 0.92106, 0.93363, 0.94425, 0.95806, 0.96, 0.97806, 0.989, 0.99262, 0.99744, 0.99919, 0.99962, 1.0, 1.0]
-    h_16_16_16_16 = [0.72169, 0.774, 0.774, 0.774, 0.78212, 0.78212, 0.80994, 0.86656, 0.86656, 0.88681, 0.89231, 0.92763, 0.92763, 0.95581, 0.96681, 0.96681, 0.96681, 0.97194, 0.9845, 0.99269, 0.99269, 0.99675, 0.99975, 0.99975, 0.99987, 0.99987, 1.0, 1.0]
-    h_16_32_32_32 = [0.56975, 0.56975, 0.56975, 0.56975, 0.56975, 0.74619, 0.74619, 0.74619, 0.74619, 0.74619, 0.83406, 0.85525, 0.85525, 0.85525, 0.85525, 0.88356, 0.88356, 0.91363, 0.91363, 0.91363, 0.94544, 0.94544, 0.95581, 0.97537, 0.97537, 0.97769, 0.98538, 0.99219, 0.99869, 0.9995, 0.99969, 1.0, 1.0]
-    h_16_64_64_64 = [0.71275, 0.71275, 0.71275, 0.71275, 0.71275, 0.74069, 0.74069, 0.74069, 0.74069, 0.74069, 0.79625, 0.84962, 0.85194, 0.85719, 0.90719, 0.91638, 0.91638, 0.93469, 0.94563, 0.955, 0.96344, 0.9675, 0.98319, 0.98388, 0.99331, 0.99581, 0.99919, 0.99962, 1.0, 1.0]
-    h_16_128_128_128 = [0.63013, 0.63013, 0.63013, 0.63013, 0.63013, 0.80369, 0.80369, 0.80369, 0.80369, 0.80369, 0.82131, 0.82131, 0.82131, 0.82131, 0.82131, 0.87994, 0.88575, 0.88575, 0.91475, 0.92856, 0.94169, 0.95625, 0.95969, 0.98175, 0.98894, 0.98894, 0.99762, 0.99831, 0.99969, 0.99969, 0.99987, 1.0, 1.0]
-    plot_fitness_vs_NN1_params(h_16_64_32_32, h_16_16_16_16, h_16_32_32_32, h_16_64_64_64, h_16_128_128_128)
+    h_16_64_32 = [0.70275, 0.70275, 0.70275, 0.72013, 0.72013, 0.72013, 0.72013, 0.72013, 0.84106, 0.84106, 0.84744, 0.84744, 0.84744, 0.84744, 0.85987, 0.91463, 0.91463, 0.92106, 0.93363, 0.94425, 0.95806, 0.96, 0.97806, 0.989, 0.99262, 0.99744, 0.99919, 0.99962, 1.0, 1.0]
+    h_16_16_16 = [0.72169, 0.774, 0.774, 0.774, 0.78212, 0.78212, 0.80994, 0.86656, 0.86656, 0.88681, 0.89231, 0.92763, 0.92763, 0.95581, 0.96681, 0.96681, 0.96681, 0.97194, 0.9845, 0.99269, 0.99269, 0.99675, 0.99975, 0.99975, 0.99987, 0.99987, 1.0, 1.0]
+    h_16_32_32 = [0.56975, 0.56975, 0.56975, 0.56975, 0.56975, 0.74619, 0.74619, 0.74619, 0.74619, 0.74619, 0.83406, 0.85525, 0.85525, 0.85525, 0.85525, 0.88356, 0.88356, 0.91363, 0.91363, 0.91363, 0.94544, 0.94544, 0.95581, 0.97537, 0.97537, 0.97769, 0.98538, 0.99219, 0.99869, 0.9995, 0.99969, 1.0, 1.0]
+    h_16_64_64 = [0.71275, 0.71275, 0.71275, 0.71275, 0.71275, 0.74069, 0.74069, 0.74069, 0.74069, 0.74069, 0.79625, 0.84962, 0.85194, 0.85719, 0.90719, 0.91638, 0.91638, 0.93469, 0.94563, 0.955, 0.96344, 0.9675, 0.98319, 0.98388, 0.99331, 0.99581, 0.99919, 0.99962, 1.0, 1.0]
+    h_16_128_128 = [0.63013, 0.63013, 0.63013, 0.63013, 0.63013, 0.80369, 0.80369, 0.80369, 0.80369, 0.80369, 0.82131, 0.82131, 0.82131, 0.82131, 0.82131, 0.87994, 0.88575, 0.88575, 0.91475, 0.92856, 0.94169, 0.95625, 0.95969, 0.98175, 0.98894, 0.98894, 0.99762, 0.99831, 0.99969, 0.99969, 0.99987, 1.0, 1.0]
+    # plot_fitness_vs_NN1_params(h_16_64_32, h_16_16_16, h_16_32_32, h_16_64_64, h_16_128_128)
 
+    # predict threshold nn0:
+    predict_thresh_07 = [0.64263, 0.68369, 0.68369, 0.807, 0.81012, 0.81469, 0.84781, 0.87744, 0.894, 0.93663, 0.96688, 0.96688, 0.98281, 0.98887, 0.98887, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.98931, 0.9893125]
+    predict_thresh_06 = [0.66112, 0.71606, 0.73025, 0.78056, 0.79125, 0.86494, 0.87344, 0.91925, 0.9435, 0.94869, 0.95244, 0.95288, 0.98375, 0.98419, 0.98869, 0.98925, 0.98938, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895, 0.9895]
+    predict_thresh_05 = [0.62206, 0.62338, 0.66919, 0.66919, 0.66919, 0.66919, 0.66919, 0.66919, 0.66919, 0.68088, 0.68088, 0.68588, 0.68588, 0.68588, 0.68863, 0.69844, 0.71006, 0.71006, 0.71119, 0.72144, 0.72144, 0.72294, 0.72294, 0.72294, 0.72294, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.75256, 0.7525625]
+    predict_thresh_04 = [0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60162, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.60919, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.61181, 0.6118125]
+    plot_fitness_vs_predict_threshold(predict_thresh_07, predict_thresh_06, predict_thresh_05, predict_thresh_04)

@@ -18,13 +18,13 @@ LAMARCKIAN_MUTATIONS = 6
 
 # Neural Network parameters
 INPUT_SIZE = 16
-HIDDEN_SIZE_1 = 64
-HIDDEN_SIZE_2 = 32
-HIDDEN_SIZE_3 = 32
+HIDDEN_SIZE_1 = 32
+HIDDEN_SIZE_2 = 16
 OUTPUT_SIZE = 1
 
 # Global Variables
 best_fitness_list = []
+
 
 def load_data(filename):
     """
@@ -311,6 +311,7 @@ class NeuralNetwork:
         for layer in self.layers:
             outputs = layer.forward(outputs)
         # Converts the output of the final layer to binary predictions
+        # 0.5 and above no good
         binary_predictions = (outputs > 0.3).astype(int)
         return binary_predictions.flatten()
 
