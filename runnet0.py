@@ -1,5 +1,4 @@
 from buildnet0 import NeuralNetwork, Layer, sigmoid, relu
-
 import numpy as np
 
 

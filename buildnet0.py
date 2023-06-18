@@ -1,8 +1,6 @@
 import numpy as np
 import copy
 import random
-import time
-
 from warnings import filterwarnings
 
 filterwarnings("ignore", category=RuntimeWarning)
