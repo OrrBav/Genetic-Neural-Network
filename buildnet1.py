@@ -1,20 +1,19 @@
 import numpy as np
 import copy
 import random
-import time
-
 from warnings import filterwarnings
 
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 100
+POPULATION_SIZE = 150
 MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
 OFFSPRING_UNTOUCHED = 0.05
 STUCK_THRESHOLD = 15
 LAMARCKIAN_MUTATIONS = 6
+ACTIVATION_THRESHOLD = 0.4
 
 # Neural Network parameters
 INPUT_SIZE = 16
@@ -67,12 +66,6 @@ def split_train_test(data, labels, test_size=0.2):
     return x_train, x_test, y_train, y_test
 
 
-# get the data and labels from chosen txt file
-data, labels = load_data("nn1.txt")
-# Split the data into train and test sets
-x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
-
-
 def create_neural_network():
     """
        creates and initialize a neural network with three layers: two hidden layers and one output layer.
@@ -80,10 +73,8 @@ def create_neural_network():
        The output layer includes an activation function.
        """
     model = NeuralNetwork()
-    # TODO: add more hidden layers
     model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1, activation=lambda x: relu(x)))
     model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2, activation=lambda x: relu(x)))
-    # model.add_layer(Layer(HIDDEN_SIZE_2, HIDDEN_SIZE_3, activation=lambda x: relu(x)))
     # activation layer
     model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, activation=lambda x: sigmoid(x)))
     return model
@@ -125,10 +116,6 @@ def relu(x):
     return np.maximum(0, x)
 
 
-def leaky_relu(x):
-    return np.maximum(0.1 * x, x)
-
-
 class GeneticAlgorithm:
     """
         This class represents a genetic algorithm for optimizing the structure and parameters of a neural network.
@@ -148,7 +135,6 @@ class GeneticAlgorithm:
         :param population (list): List of neural network objects.
         :return: list: List of selected parent networks for crossover and reproduction.
         """
-        # todo: deal with fitness here
         ranked_population = sorted(population, key=lambda network: evaluate_fitness(network, x_train, y_train))
         selection_probs = [rank / len(ranked_population) for rank in range(1, len(ranked_population) + 1)]
         selected_parents = random.choices(ranked_population, weights=selection_probs, k=len(population))
@@ -236,8 +222,9 @@ class GeneticAlgorithm:
                     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
                 population = new_population
 
-        # At the end of all the generations/stopped due to convergence/stuck-
-        # evaluate the fitness of the last gen population, and select the network with the best fitness        fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
+        # At the end of all the generations/stopped due to convergence/stuck.
+        # evaluate the fitness of the last gen population, and select the network with the best fitness
+        fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_fitness_list.append(max(fitness_scores))
         best_network = population[np.argmax(fitness_scores)]
         return best_network
@@ -276,6 +263,9 @@ class Layer:
         # Activation function for the layer
         self.activation = activation
 
+    def get_weights(self):
+        return self.weights
+
     # Computes the forward propagation of the layer for given inputs
     def forward(self, inputs):
         # Calculate output as matrix product of inputs and weights
@@ -305,12 +295,17 @@ class NeuralNetwork:
         # Appends a new layer to the network
         self.layers.append(layer)
 
+    def get_layers(self):
+        # Gets the list of layers of the model
+        return self.layers
+
     def predict(self, inputs):
         # Passes the inputs through each layer of the network
         outputs = inputs
         for layer in self.layers:
             outputs = layer.forward(outputs)
         # Converts the output of the final layer to binary predictions
+        binary_predictions = (outputs > ACTIVATION_THRESHOLD).astype(int)
         # 0.5 and above no good
         binary_predictions = (outputs > 0.3).astype(int)
         return binary_predictions.flatten()
@@ -331,10 +326,12 @@ class NeuralNetwork:
 
     def mutate(self):
         """
-        ## TODO: CHANGE THE DOCUMENTATION
-        The method is used to randomly adjust the weights in the network's layers to introduce variation.
+        The method is used to introduce variation in the population,
+        by randomly adjusting the weights in the network's layers.
         the mutation process randomly selects a subset of weights in each layer based on the MUTATION_RATE.
-        For the selected weights, a random value (pos/neg) is added to introduce variation.
+        For the selected weights, a swap of two random weights is performed.
+        This helps in introducing more diversity in the population, potentially allowing the genetic algorithm
+        to explore more diverse solutions.
         """
 
         # Iterate through each layer in the network
@@ -358,18 +355,20 @@ class NeuralNetwork:
             layer.weights[swap_indices[1]] = temp
 
 
-start_time = time.time()
-# Main
-genetic_algorithm = GeneticAlgorithm()
-best_network = genetic_algorithm.evolve(x_train, y_train)
+if __name__ == "__main__":
+    # get the data and labels from chosen txt file
+    data, labels = load_data("nn1.txt")
+    # Split the data into train and test sets
+    x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
+    # Main
+    genetic_algorithm = GeneticAlgorithm()
+    best_network = genetic_algorithm.evolve(x_train, y_train)
+    arr1 = best_network.get_layers()[0].get_weights()
+    arr2 = best_network.get_layers()[1].get_weights()
+    arr3 = best_network.get_layers()[2].get_weights()
+    np.savez("wnet1", arr1=arr1, arr2=arr2, arr3=arr3)
 
-# Testing
-test_predictions = best_network.predict(x_test)
-accuracy = compute_accuracy_score(y_test, test_predictions)
-print(f"Test Accuracy: {accuracy}")
-end_time = time.time()
-runtime = end_time - start_time
-minutes = round(runtime / 60)
-seconds = runtime % 60
-print(best_fitness_list)
-print(f"Runtime: {minutes} minutes and {round(seconds, 1)} seconds")
+    # Testing
+    test_predictions = best_network.predict(x_test)
+    accuracy = compute_accuracy_score(y_test, test_predictions)
+    print(f"Test Accuracy: {accuracy}")

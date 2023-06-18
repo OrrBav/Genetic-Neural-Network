@@ -8,13 +8,14 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 150
+POPULATION_SIZE = 200
 MUTATION_RATE = 0.3
 GENERATIONS = 200
 ELITE_SIZE = 0.1
 OFFSPRING_UNTOUCHED = 0.05
 STUCK_THRESHOLD = 15
 LAMARCKIAN_MUTATIONS = 5
+ACTIVATION_THRESHOLD = 0.6
 
 # Neural Network parameters
 INPUT_SIZE = 16
@@ -80,10 +81,10 @@ def create_neural_network():
        The output layer includes an activation function.
        """
     model = NeuralNetwork()
-    # TODO: add more hidden layers
     model.add_layer(Layer(INPUT_SIZE, HIDDEN_SIZE_1, activation=lambda x: relu(x)))
+    model.add_layer(Layer(HIDDEN_SIZE_1, HIDDEN_SIZE_2, activation=lambda x: relu(x)))
     # activation layer
-    model.add_layer(Layer(HIDDEN_SIZE_1, OUTPUT_SIZE, activation=lambda x: sigmoid(x)))
+    model.add_layer(Layer(HIDDEN_SIZE_2, OUTPUT_SIZE, activation=lambda x: sigmoid(x)))
     return model
 
 
@@ -123,13 +124,6 @@ def relu(x):
     return np.maximum(0, x)
 
 
-def leaky_relu(x):
-    return np.maximum(0.1 * x, x)
-
-
-def tanh(x):
-    return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
-
 
 class GeneticAlgorithm:
     """
@@ -145,6 +139,11 @@ class GeneticAlgorithm:
 
     # Rank Selection
     def rank_selection(self, population):
+        """
+        Selects parent networks from the population based on rank-based selection.
+        :param population (list): List of neural network objects.
+        :return: list: List of selected parent networks for crossover and reproduction.
+        """
         ranked_population = sorted(population, key=lambda network: evaluate_fitness(network, x_train, y_train))
         selection_probs = [rank / len(ranked_population) for rank in range(1, len(ranked_population) + 1)]
         selected_parents = random.choices(ranked_population, weights=selection_probs, k=len(population))
@@ -224,6 +223,7 @@ class GeneticAlgorithm:
             # If the genetic algorithm is stuck for more than 3 generations, it triggers the Lamarckian method,
             #  in order to try and get out of a local optima.
             if gen_stuck_count > 3:
+                # Lamarckian method:
                 print("Lamarckian evolution")
                 new_population = []
                 # performe Lamarckian evolution on each network in the current population
@@ -231,7 +231,7 @@ class GeneticAlgorithm:
                     new_population.append(self.lamarckian_evolution(network, x_train, y_train))
                 population = new_population
 
-        # At the end of all the generations/stopped due to convergence/stuck-
+        # At the end of all the generations/stopped due to convergence/stuck.
         # evaluate the fitness of the last gen population, and select the network with the best fitness
         fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
         best_fitness_list.append(max(fitness_scores))
@@ -272,6 +272,9 @@ class Layer:
         # Activation function for the layer
         self.activation = activation
 
+    def get_weights(self):
+        return self.weights
+
     # Computes the forward propagation of the layer for given inputs
     def forward(self, inputs):
         # Calculate output as matrix product of inputs and weights
@@ -301,13 +304,17 @@ class NeuralNetwork:
         # Appends a new layer to the network
         self.layers.append(layer)
 
+    def get_layers(self):
+        # Gets the list of layers of the model
+        return self.layers
+
     def predict(self, inputs):
         # Passes the inputs through each layer of the network
         outputs = inputs
         for layer in self.layers:
             outputs = layer.forward(outputs)
         # Converts the output of the final layer to binary predictions
-        binary_predictions = (outputs > 0.7).astype(int)
+        binary_predictions = (outputs > ACTIVATION_THRESHOLD).astype(int)
         return binary_predictions.flatten()
 
     def crossover(self, other_network):
@@ -336,38 +343,39 @@ class NeuralNetwork:
 
         # Iterate through each layer in the network
         for layer in self.layers:
-            for _ in range(2):
-                mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
-                # Find the indices where mutation should occur
-                mutation_indices = np.where(mask)
-                num_mutations = len(mutation_indices[0])
+            mask = np.random.rand(*layer.weights.shape) < MUTATION_RATE
+            # Find the indices where mutation should occur
+            mutation_indices = np.where(mask)
+            num_mutations = len(mutation_indices[0])
 
-                # If less than 2 mutations, continue to next iteration
-                if num_mutations < 2:
-                    continue
+            # If less than 2 mutations, continue to next iteration
+            if num_mutations < 2:
+                continue
 
-                # Choose two random indices for swapping weights
-                random_indices = np.random.choice(num_mutations, size=2, replace=False)
-                swap_indices = mutation_indices[0][random_indices]
+            # Choose two random indices for swapping weights
+            random_indices = np.random.choice(num_mutations, size=2, replace=False)
+            swap_indices = mutation_indices[0][random_indices]
 
-                # Perform the weight swap to introduce mutation
-                temp = layer.weights[swap_indices[0]]
-                layer.weights[swap_indices[0]] = layer.weights[swap_indices[1]]
-                layer.weights[swap_indices[1]] = temp
+            # Perform the weight swap to introduce mutation
+            temp = layer.weights[swap_indices[0]]
+            layer.weights[swap_indices[0]] = layer.weights[swap_indices[1]]
+            layer.weights[swap_indices[1]] = temp
 
 
-start_time = time.time()
-# Main
-genetic_algorithm = GeneticAlgorithm()
-best_network = genetic_algorithm.evolve(x_train, y_train)
+if __name__ == "__main__":
+    # get the data and labels from chosen txt file
+    data, labels = load_data("nn0.txt")
+    # Split the data into train and test sets
+    x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
+    # Main
+    genetic_algorithm = GeneticAlgorithm()
+    best_network = genetic_algorithm.evolve(x_train, y_train)
+    arr1 = best_network.get_layers()[0].get_weights()
+    arr2 = best_network.get_layers()[1].get_weights()
+    arr3 = best_network.get_layers()[2].get_weights()
+    np.savez("wnet0", arr1=arr1, arr2=arr2, arr3=arr3)
 
-# Testing
-test_predictions = best_network.predict(x_test)
-accuracy = compute_accuracy_score(y_test, test_predictions)
-print(f"Test Accuracy: {accuracy}")
-end_time = time.time()
-runtime = end_time - start_time
-minutes = round(runtime / 60)
-seconds = runtime % 60
-print(best_fitness_list)
-print(f"Runtime: {minutes} minutes and {round(seconds, 1)} seconds")
+    # Testing
+    test_predictions = best_network.predict(x_test)
+    accuracy = compute_accuracy_score(y_test, test_predictions)
+    print(f"Test Accuracy: {accuracy}")
