@@ -80,17 +80,17 @@ def create_neural_network():
     return model
 
 
-def compute_accuracy_score(y_train, predictions):
+def compute_accuracy_score(y_train_nn1, predictions):
     """
         Calculates the accuracy score of the predictions made by the network.
         If a prediction matches its true label, it increments the count of correct predictions.
         The accuracy score is the correct predictions divided by the total predictions.
     """
-    num_samples = len(y_train)
+    num_samples = len(y_train_nn1)
     correct_predictions = 0
 
     # If the prediction is correct, increment the count of correct predictions
-    for true_label, predicted_label in zip(y_train, predictions):
+    for true_label, predicted_label in zip(y_train_nn1, predictions):
         if true_label == predicted_label:
             correct_predictions += 1
 
@@ -99,13 +99,13 @@ def compute_accuracy_score(y_train, predictions):
     return accuracy
 
 
-def evaluate_fitness(network, x_train, y_train):
+def evaluate_fitness(network, x_train_nn1, y_train_nn1):
     """
         The fitness function evaluates how well the neural network performs on the training data.
         It uses the accuracy of the network's predictions as the fitness score.
     """
-    predictions = network.predict(x_train)
-    return compute_accuracy_score(y_train, predictions)
+    predictions = network.predict(x_train_nn1)
+    return compute_accuracy_score(y_train_nn1, predictions)
 
 
 def sigmoid(x):
@@ -129,18 +129,18 @@ class GeneticAlgorithm:
         self.population_size = POPULATION_SIZE
 
     # Rank Selection
-    def rank_selection(self, population):
+    def rank_selection(self, population, x_train_nn1, y_train_nn1):
         """
         Selects parent networks from the population based on rank-based selection.
         :param population (list): List of neural network objects.
         :return: list: List of selected parent networks for crossover and reproduction.
         """
-        ranked_population = sorted(population, key=lambda network: evaluate_fitness(network, x_train, y_train))
+        ranked_population = sorted(population, key=lambda network: evaluate_fitness(network, x_train_nn1, y_train_nn1))
         selection_probs = [rank / len(ranked_population) for rank in range(1, len(ranked_population) + 1)]
         selected_parents = random.choices(ranked_population, weights=selection_probs, k=len(population))
         return selected_parents
 
-    def evolve(self, x_train, y_train):
+    def evolve(self, x_train_nn1, y_train_nn1):
         # Creating an initial population of neural networks
         population = []
         global best_fitness_list
@@ -156,7 +156,7 @@ class GeneticAlgorithm:
             # Evaluating the fitness of each network in the current population
             fitness_scores = []
             for network in population:
-                fitness = evaluate_fitness(network, x_train, y_train)
+                fitness = evaluate_fitness(network, x_train_nn1, y_train_nn1)
                 fitness_scores.append(round(fitness, 5))
 
             curr_gen_best_fitness = max(fitness_scores)
@@ -192,7 +192,7 @@ class GeneticAlgorithm:
             num_offsprings = self.population_size - len(elite_population)
 
             # Rank Selection
-            selected_parents = self.rank_selection(remaining_population)
+            selected_parents = self.rank_selection(remaining_population, x_train_nn1, y_train_nn1)
 
             for _ in range(num_offsprings):
                 parent1 = np.random.choice(selected_parents)
@@ -219,26 +219,26 @@ class GeneticAlgorithm:
                 new_population = []
                 # performe Lamarckian evolution on each network in the current population
                 for network in population:
-                    new_population.append(self.lamarckian_evolution(network, x_train, y_train))
+                    new_population.append(self.lamarckian_evolution(network, x_train_nn1, y_train_nn1))
                 population = new_population
 
         # At the end of all the generations/stopped due to convergence/stuck.
         # evaluate the fitness of the last gen population, and select the network with the best fitness
-        fitness_scores = [evaluate_fitness(network, x_train, y_train) for network in population]
+        fitness_scores = [evaluate_fitness(network, x_train_nn1, y_train_nn1) for network in population]
         best_fitness_list.append(max(fitness_scores))
         best_network = population[np.argmax(fitness_scores)]
         return best_network
 
     # The lamarckian_evolution method tries a specified number of mutations,
     # and accepts the new mutated network only if its fitness is better than the original network
-    def lamarckian_evolution(self, network, x_train, y_train):
-        old_fitness = evaluate_fitness(network, x_train, y_train)
+    def lamarckian_evolution(self, network, x_train_nn1, y_train_nn1):
+        old_fitness = evaluate_fitness(network, x_train_nn1, y_train_nn1)
         # creating a copy of the original network so it will be mutated
         new_network = copy.deepcopy(network)
         for _ in range(LAMARCKIAN_MUTATIONS):
             new_network.mutate()
         # The fitness of the mutated network is now evaluated
-        new_fitness = evaluate_fitness(new_network, x_train, y_train)
+        new_fitness = evaluate_fitness(new_network, x_train_nn1, y_train_nn1)
         # If the mutated network's fitness is better than the original one, we take the mutated network
         if new_fitness > old_fitness:
             return new_network
@@ -359,19 +359,21 @@ class NeuralNetwork:
 
 
 if __name__ == "__main__":
-    # get the data and labels from chosen txt file
-    data, labels = load_data("nn1.txt")
-    # Split the data into train and test sets
-    x_train, x_test, y_train, y_test = split_train_test(data, labels, test_size=0.2)
+    print("Welcome to the Genetic Algorithm for Neural Network Optimization!")
+    print("This program uses a GA to optimize the structure and parameters of a NN for binary string classification.")
+    # load the train and test files into data and corresponding labels
+    x_train_nn1, y_train_nn1 = load_data("nn1_train.txt")
+    x_test_nn1, y_test_nn1 = load_data("nn1_test.txt")
+
     # Main
     genetic_algorithm = GeneticAlgorithm()
-    best_network = genetic_algorithm.evolve(x_train, y_train)
+    best_network = genetic_algorithm.evolve(x_train_nn1, y_train_nn1)
     arr1 = best_network.get_layers()[0].get_weights()
     arr2 = best_network.get_layers()[1].get_weights()
     arr3 = best_network.get_layers()[2].get_weights()
     np.savez("wnet1", arr1=arr1, arr2=arr2, arr3=arr3)
 
     # Testing
-    test_predictions = best_network.predict(x_test)
-    accuracy = compute_accuracy_score(y_test, test_predictions)
+    test_predictions = best_network.predict(x_test_nn1)
+    accuracy = compute_accuracy_score(y_test_nn1, test_predictions)
     print(f"Test Accuracy: {accuracy}")

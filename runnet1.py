@@ -14,8 +14,16 @@ def load_test_data(filename):
 
 
 if __name__ == "__main__":
+    print("Welcome to the Genetic Algorithm for Neural Network Optimization!")
+    print("This program uses a GA to optimize the structure and parameters of a NN for binary string classification.")
     best_network = NeuralNetwork()
     loaded_data = np.load("wnet1.npz")
+
+    # # to see the actual weights:
+    # print(loaded_data.files)
+    # for array_name in loaded_data.files:
+    #     print(f"{array_name}:\n{loaded_data[array_name]}")
+
     arr1 = loaded_data['arr1']
     arr2 = loaded_data['arr2']
     arr3 = loaded_data['arr3']
