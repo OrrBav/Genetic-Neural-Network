@@ -24,7 +24,7 @@ Please note that the actual accuracy might differ depending on the complexity of
 The best fitness scores for each generation are also tracked and stored in a list (`best_fitness_list`), which you can use to visualize the optimization process. i.e:  
 
 
-<img width="300" alt="image" src="https://github.com/OrrBav/Genetic-Neural-Network/assets/112930532/cae2dd80-fa2a-4272-835a-4dfd860acb42">
+<img width="350" alt="image" src="https://github.com/OrrBav/Genetic-Neural-Network/assets/112930532/cae2dd80-fa2a-4272-835a-4dfd860acb42">
 
 
 ## Prerequisites
