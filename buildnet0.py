@@ -370,9 +370,14 @@ if __name__ == "__main__":
     arr1 = best_network.get_layers()[0].get_weights()
     arr2 = best_network.get_layers()[1].get_weights()
     arr3 = best_network.get_layers()[2].get_weights()
+    print("Writing resulting weights to wnet.npz file")
     np.savez("wnet0", arr1=arr1, arr2=arr2, arr3=arr3)
 
     # Testing
     test_predictions = best_network.predict(x_test_nn0)
     accuracy = compute_accuracy_score(y_test_nn0, test_predictions)
     print(f"Test Accuracy: {accuracy}")
+    while True:
+        user_input = input("End the program? (y/n): ")
+        if user_input.lower() == 'y':
+            break

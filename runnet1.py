@@ -15,7 +15,8 @@ def load_test_data(filename):
 
 if __name__ == "__main__":
     print("Welcome to the Genetic Algorithm for Neural Network Optimization!")
-    print("This program uses a GA to optimize the structure and parameters of a NN for binary string classification.")
+    print("This program uses the previous Genetic Algorithm program to classify your binary strings.")
+    print("The resulting file will be located in the Current Working Directory, under result.txt")
     best_network = NeuralNetwork()
     loaded_data = np.load("wnet1.npz")
 
@@ -47,3 +48,8 @@ if __name__ == "__main__":
     with open("result1.txt", "w") as file:
         for label in test_predictions:
             file.write(str(label) + "\n")
+
+    while True:
+        user_input = input("End the program? (y/n): ")
+        if user_input.lower() == 'y':
+            break
