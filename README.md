@@ -21,7 +21,9 @@ After training the Neural Network using the Genetic Algorithm, the network's wei
 The program also evaluates the performance of the optimized network on a test set and prints out the accuracy score.  
 Please note that the actual accuracy might differ depending on the complexity of the task and the quality of the input data. The Genetic Algorithm might not always find the global optimum and can be influenced by factors such as population size, mutation rate, the number of generations, etc.
 
-The best fitness scores for each generation are also tracked and stored in a list (`best_fitness_list`), which you can use to visualize the optimization process. i.e:
+The best fitness scores for each generation are also tracked and stored in a list (`best_fitness_list`), which you can use to visualize the optimization process. i.e:  
+
+
 <img width="300" alt="image" src="https://github.com/OrrBav/Genetic-Neural-Network/assets/112930532/cae2dd80-fa2a-4272-835a-4dfd860acb42">
 
 
